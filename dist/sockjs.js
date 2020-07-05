@@ -1,4 +1,4 @@
-/* sockjs-client v1.5.0 | http://sockjs.org | MIT license */
+/* sockjs-client v0.0.2 | http://sockjs.org | MIT license */
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.SockJS = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 (function (global){
 'use strict';
@@ -14,7 +14,7 @@ if ('_sockjs_onload' in global) {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./main":14,"./transport-list":16}],2:[function(require,module,exports){
+},{"./main":15,"./transport-list":17}],2:[function(require,module,exports){
 'use strict';
 
 var inherits = require('inherits')
@@ -33,7 +33,7 @@ inherits(CloseEvent, Event);
 
 module.exports = CloseEvent;
 
-},{"./event":4,"inherits":57}],3:[function(require,module,exports){
+},{"./event":4,"inherits":58}],3:[function(require,module,exports){
 'use strict';
 
 var inherits = require('inherits')
@@ -92,7 +92,7 @@ EventEmitter.prototype.removeListener = EventTarget.prototype.removeEventListene
 
 module.exports.EventEmitter = EventEmitter;
 
-},{"./eventtarget":5,"inherits":57}],4:[function(require,module,exports){
+},{"./eventtarget":5,"inherits":58}],4:[function(require,module,exports){
 'use strict';
 
 function Event(eventType) {
@@ -187,6 +187,25 @@ var inherits = require('inherits')
   , Event = require('./event')
   ;
 
+function InfoEvent(info, rtt, headers) {
+  Event.call(this);
+  this.initEvent('info', false, false);
+  this.info = info;
+  this.rtt = rtt;
+  this.headers = headers;
+}
+
+inherits(InfoEvent, Event);
+
+module.exports = InfoEvent;
+
+},{"./event":4,"inherits":58}],7:[function(require,module,exports){
+'use strict';
+
+var inherits = require('inherits')
+  , Event = require('./event')
+  ;
+
 function TransportMessageEvent(data) {
   Event.call(this);
   this.initEvent('message', false, false);
@@ -197,7 +216,7 @@ inherits(TransportMessageEvent, Event);
 
 module.exports = TransportMessageEvent;
 
-},{"./event":4,"inherits":57}],7:[function(require,module,exports){
+},{"./event":4,"inherits":58}],8:[function(require,module,exports){
 'use strict';
 
 var JSON3 = require('json3')
@@ -226,7 +245,7 @@ FacadeJS.prototype._close = function() {
 
 module.exports = FacadeJS;
 
-},{"./utils/iframe":47,"json3":58}],8:[function(require,module,exports){
+},{"./utils/iframe":48,"json3":59}],9:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -333,7 +352,7 @@ module.exports = function(SockJS, availableTransports) {
 
 }).call(this,{ env: {} })
 
-},{"./facade":7,"./info-iframe-receiver":10,"./location":13,"./utils/event":46,"./utils/iframe":47,"./utils/url":52,"debug":55,"json3":58}],9:[function(require,module,exports){
+},{"./facade":8,"./info-iframe-receiver":11,"./location":14,"./utils/event":47,"./utils/iframe":48,"./utils/url":53,"debug":56,"json3":59}],10:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -348,14 +367,14 @@ if (process.env.NODE_ENV !== 'production') {
   debug = require('debug')('sockjs-client:info-ajax');
 }
 
-function InfoAjax(url, AjaxObject) {
+function InfoAjax(url, AjaxObject, opts) {
   EventEmitter.call(this);
 
   var self = this;
   var t0 = +new Date();
-  this.xo = new AjaxObject('GET', url);
+  this.xo = new AjaxObject('GET', url, null, opts);
 
-  this.xo.once('finish', function(status, text) {
+  this.xo.once('finish', function(status, text, headers) {
     var info, rtt;
     if (status === 200) {
       rtt = (+new Date()) - t0;
@@ -371,7 +390,7 @@ function InfoAjax(url, AjaxObject) {
         info = {};
       }
     }
-    self.emit('finish', info, rtt);
+    self.emit('finish', info, rtt, headers);
     self.removeAllListeners();
   });
 }
@@ -387,7 +406,7 @@ module.exports = InfoAjax;
 
 }).call(this,{ env: {} })
 
-},{"./utils/object":49,"debug":55,"events":3,"inherits":57,"json3":58}],10:[function(require,module,exports){
+},{"./utils/object":50,"debug":56,"events":3,"inherits":58,"json3":59}],11:[function(require,module,exports){
 'use strict';
 
 var inherits = require('inherits')
@@ -397,11 +416,11 @@ var inherits = require('inherits')
   , InfoAjax = require('./info-ajax')
   ;
 
-function InfoReceiverIframe(transUrl) {
+function InfoReceiverIframe(transUrl, ignore, opts) {
   var self = this;
   EventEmitter.call(this);
 
-  this.ir = new InfoAjax(transUrl, XHRLocalObject);
+  this.ir = new InfoAjax(transUrl, XHRLocalObject, opts);
   this.ir.once('finish', function(info, rtt) {
     self.ir = null;
     self.emit('message', JSON3.stringify([info, rtt]));
@@ -422,7 +441,7 @@ InfoReceiverIframe.prototype.close = function() {
 
 module.exports = InfoReceiverIframe;
 
-},{"./info-ajax":9,"./transport/sender/xhr-local":37,"events":3,"inherits":57,"json3":58}],11:[function(require,module,exports){
+},{"./info-ajax":10,"./transport/sender/xhr-local":38,"events":3,"inherits":58,"json3":59}],12:[function(require,module,exports){
 (function (process,global){
 'use strict';
 
@@ -496,7 +515,7 @@ module.exports = InfoIframe;
 
 }).call(this,{ env: {} },typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./info-iframe-receiver":10,"./transport/iframe":22,"./utils/event":46,"debug":55,"events":3,"inherits":57,"json3":58}],12:[function(require,module,exports){
+},{"./info-iframe-receiver":11,"./transport/iframe":23,"./utils/event":47,"debug":56,"events":3,"inherits":58,"json3":59}],13:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -516,13 +535,13 @@ if (process.env.NODE_ENV !== 'production') {
   debug = require('debug')('sockjs-client:info-receiver');
 }
 
-function InfoReceiver(baseUrl, urlInfo) {
+function InfoReceiver(baseUrl, urlInfo, transportOptions) {
   debug(baseUrl);
   var self = this;
   EventEmitter.call(this);
 
   setTimeout(function() {
-    self.doXhr(baseUrl, urlInfo);
+    self.doXhr(baseUrl, urlInfo, transportOptions);
   }, 0);
 }
 
@@ -530,30 +549,30 @@ inherits(InfoReceiver, EventEmitter);
 
 // TODO this is currently ignoring the list of available transports and the whitelist
 
-InfoReceiver._getReceiver = function(baseUrl, url, urlInfo) {
+InfoReceiver._getReceiver = function(baseUrl, url, urlInfo, transportOptions) {
   // determine method of CORS support (if needed)
   if (urlInfo.sameOrigin) {
-    return new InfoAjax(url, XHRLocal);
+    return new InfoAjax(url, XHRLocal, transportOptions['xhr-streaming'] || transportOptions['xhr-polling']);
   }
   if (XHRCors.enabled) {
-    return new InfoAjax(url, XHRCors);
+    return new InfoAjax(url, XHRCors, transportOptions['xhr-streaming'] || transportOptions['xhr-polling']);
   }
   if (XDR.enabled && urlInfo.sameScheme) {
-    return new InfoAjax(url, XDR);
+    return new InfoAjax(url, XDR, transportOptions['xdr-streaming'] || transportOptions['xdr-polling']);
   }
   if (InfoIframe.enabled()) {
-    return new InfoIframe(baseUrl, url);
+    return new InfoIframe(baseUrl, url, transportOptions['iframe']);
   }
   return new InfoAjax(url, XHRFake);
 };
 
-InfoReceiver.prototype.doXhr = function(baseUrl, urlInfo) {
+InfoReceiver.prototype.doXhr = function(baseUrl, urlInfo, transportOptions) {
   var self = this
     , url = urlUtils.addPath(baseUrl, '/info')
     ;
   debug('doXhr', url);
 
-  this.xo = InfoReceiver._getReceiver(baseUrl, url, urlInfo);
+  this.xo = InfoReceiver._getReceiver(baseUrl, url, urlInfo, transportOptions);
 
   this.timeoutRef = setTimeout(function() {
     debug('timeout');
@@ -561,10 +580,10 @@ InfoReceiver.prototype.doXhr = function(baseUrl, urlInfo) {
     self.emit('finish');
   }, InfoReceiver.timeout);
 
-  this.xo.once('finish', function(info, rtt) {
-    debug('finish', info, rtt);
+  this.xo.once('finish', function(info, rtt, headers) {
+    debug('finish', info, rtt, headers);
     self._cleanup(true);
-    self.emit('finish', info, rtt);
+    self.emit('finish', info, rtt, headers || {});
   });
 };
 
@@ -590,7 +609,7 @@ module.exports = InfoReceiver;
 
 }).call(this,{ env: {} })
 
-},{"./info-ajax":9,"./info-iframe":11,"./transport/sender/xdr":34,"./transport/sender/xhr-cors":35,"./transport/sender/xhr-fake":36,"./transport/sender/xhr-local":37,"./utils/url":52,"debug":55,"events":3,"inherits":57}],13:[function(require,module,exports){
+},{"./info-ajax":10,"./info-iframe":12,"./transport/sender/xdr":35,"./transport/sender/xhr-cors":36,"./transport/sender/xhr-fake":37,"./transport/sender/xhr-local":38,"./utils/url":53,"debug":56,"events":3,"inherits":58}],14:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -605,7 +624,7 @@ module.exports = global.location || {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 (function (process,global){
 'use strict';
 
@@ -627,6 +646,7 @@ var URL = require('url-parse')
   , loc = require('./location')
   , CloseEvent = require('./event/close')
   , TransportMessageEvent = require('./event/trans-message')
+  , InfoEvent = require('./event/info')
   , InfoReceiver = require('./info-receiver')
   ;
 
@@ -731,7 +751,7 @@ function SockJS(url, protocols, options) {
   , sameScheme: urlUtils.isSchemeEqual(this.url, loc.href)
   };
 
-  this._ir = new InfoReceiver(this.url, this._urlInfo);
+  this._ir = new InfoReceiver(this.url, this._urlInfo, this._transportOptions);
   this._ir.once('finish', this._receiveInfo.bind(this));
 }
 
@@ -783,8 +803,9 @@ SockJS.OPEN = 1;
 SockJS.CLOSING = 2;
 SockJS.CLOSED = 3;
 
-SockJS.prototype._receiveInfo = function(info, rtt) {
+SockJS.prototype._receiveInfo = function(info, rtt, headers) {
   debug('_receiveInfo', rtt);
+  this.dispatchEvent(new InfoEvent(info, rtt, headers));
   this._ir = null;
   if (!info) {
     this._close(1002, 'Cannot connect to server');
@@ -999,7 +1020,7 @@ module.exports = function(availableTransports) {
 
 }).call(this,{ env: {} },typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./event/close":2,"./event/event":4,"./event/eventtarget":5,"./event/trans-message":6,"./iframe-bootstrap":8,"./info-receiver":12,"./location":13,"./shims":15,"./utils/browser":44,"./utils/escape":45,"./utils/event":46,"./utils/log":48,"./utils/object":49,"./utils/random":50,"./utils/transport":51,"./utils/url":52,"./version":53,"debug":55,"inherits":57,"json3":58,"url-parse":61}],15:[function(require,module,exports){
+},{"./event/close":2,"./event/event":4,"./event/eventtarget":5,"./event/info":6,"./event/trans-message":7,"./iframe-bootstrap":9,"./info-receiver":13,"./location":14,"./shims":16,"./utils/browser":45,"./utils/escape":46,"./utils/event":47,"./utils/log":49,"./utils/object":50,"./utils/random":51,"./utils/transport":52,"./utils/url":53,"./version":54,"debug":56,"inherits":58,"json3":59,"url-parse":62}],16:[function(require,module,exports){
 /* eslint-disable */
 /* jscs: disable */
 'use strict';
@@ -1453,7 +1474,7 @@ defineProperties(StringPrototype, {
     }
 }, hasNegativeSubstrBug);
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 'use strict';
 
 module.exports = [
@@ -1473,7 +1494,7 @@ module.exports = [
 , require('./transport/jsonp-polling')
 ];
 
-},{"./transport/eventsource":20,"./transport/htmlfile":21,"./transport/jsonp-polling":23,"./transport/lib/iframe-wrap":26,"./transport/websocket":38,"./transport/xdr-polling":39,"./transport/xdr-streaming":40,"./transport/xhr-polling":41,"./transport/xhr-streaming":42}],17:[function(require,module,exports){
+},{"./transport/eventsource":21,"./transport/htmlfile":22,"./transport/jsonp-polling":24,"./transport/lib/iframe-wrap":27,"./transport/websocket":39,"./transport/xdr-polling":40,"./transport/xdr-streaming":41,"./transport/xhr-polling":42,"./transport/xhr-streaming":43}],18:[function(require,module,exports){
 (function (process,global){
 'use strict';
 
@@ -1671,13 +1692,13 @@ module.exports = AbstractXHRObject;
 
 }).call(this,{ env: {} },typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"../../utils/event":46,"../../utils/url":52,"debug":55,"events":3,"inherits":57}],18:[function(require,module,exports){
+},{"../../utils/event":47,"../../utils/url":53,"debug":56,"events":3,"inherits":58}],19:[function(require,module,exports){
 (function (global){
 module.exports = global.EventSource;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1692,7 +1713,7 @@ if (Driver) {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 'use strict';
 
 var inherits = require('inherits')
@@ -1702,12 +1723,12 @@ var inherits = require('inherits')
   , EventSourceDriver = require('eventsource')
   ;
 
-function EventSourceTransport(transUrl) {
+function EventSourceTransport(transUrl, ignore, opts) {
   if (!EventSourceTransport.enabled()) {
     throw new Error('Transport created when disabled');
   }
 
-  AjaxBasedTransport.call(this, transUrl, '/eventsource', EventSourceReceiver, XHRCorsObject);
+  AjaxBasedTransport.call(this, transUrl, '/eventsource', EventSourceReceiver, XHRCorsObject, opts);
 }
 
 inherits(EventSourceTransport, AjaxBasedTransport);
@@ -1721,7 +1742,7 @@ EventSourceTransport.roundTrips = 2;
 
 module.exports = EventSourceTransport;
 
-},{"./lib/ajax-based":24,"./receiver/eventsource":29,"./sender/xhr-cors":35,"eventsource":18,"inherits":57}],21:[function(require,module,exports){
+},{"./lib/ajax-based":25,"./receiver/eventsource":30,"./sender/xhr-cors":36,"eventsource":19,"inherits":58}],22:[function(require,module,exports){
 'use strict';
 
 var inherits = require('inherits')
@@ -1730,11 +1751,11 @@ var inherits = require('inherits')
   , AjaxBasedTransport = require('./lib/ajax-based')
   ;
 
-function HtmlFileTransport(transUrl) {
+function HtmlFileTransport(transUrl, ignore, opts) {
   if (!HtmlfileReceiver.enabled) {
     throw new Error('Transport created when disabled');
   }
-  AjaxBasedTransport.call(this, transUrl, '/htmlfile', HtmlfileReceiver, XHRLocalObject);
+  AjaxBasedTransport.call(this, transUrl, '/htmlfile', HtmlfileReceiver, XHRLocalObject, opts);
 }
 
 inherits(HtmlFileTransport, AjaxBasedTransport);
@@ -1748,7 +1769,7 @@ HtmlFileTransport.roundTrips = 2;
 
 module.exports = HtmlFileTransport;
 
-},{"./lib/ajax-based":24,"./receiver/htmlfile":30,"./sender/xhr-local":37,"inherits":57}],22:[function(require,module,exports){
+},{"./lib/ajax-based":25,"./receiver/htmlfile":31,"./sender/xhr-local":38,"inherits":58}],23:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -1894,7 +1915,7 @@ module.exports = IframeTransport;
 
 }).call(this,{ env: {} })
 
-},{"../utils/event":46,"../utils/iframe":47,"../utils/random":50,"../utils/url":52,"../version":53,"debug":55,"events":3,"inherits":57,"json3":58}],23:[function(require,module,exports){
+},{"../utils/event":47,"../utils/iframe":48,"../utils/random":51,"../utils/url":53,"../version":54,"debug":56,"events":3,"inherits":58,"json3":59}],24:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1933,7 +1954,7 @@ module.exports = JsonPTransport;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./lib/sender-receiver":28,"./receiver/jsonp":31,"./sender/jsonp":33,"inherits":57}],24:[function(require,module,exports){
+},{"./lib/sender-receiver":29,"./receiver/jsonp":32,"./sender/jsonp":34,"inherits":58}],25:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -1947,15 +1968,16 @@ if (process.env.NODE_ENV !== 'production') {
   debug = require('debug')('sockjs-client:ajax-based');
 }
 
-function createAjaxSender(AjaxObject) {
+function createAjaxSender(AjaxObject, opts) {
   return function(url, payload, callback) {
     debug('create ajax sender', url, payload);
-    var opt = {};
+    opts = opts || {};
     if (typeof payload === 'string') {
-      opt.headers = {'Content-type': 'text/plain'};
+      opts.headers = opts.headers || {};
+      opts.headers['Content-type'] = 'text/plain';
     }
     var ajaxUrl = urlUtils.addPath(url, '/xhr_send');
-    var xo = new AjaxObject('POST', ajaxUrl, payload, opt);
+    var xo = new AjaxObject('POST', ajaxUrl, payload, opts);
     xo.once('finish', function(status) {
       debug('finish', status);
       xo = null;
@@ -1977,8 +1999,8 @@ function createAjaxSender(AjaxObject) {
   };
 }
 
-function AjaxBasedTransport(transUrl, urlSuffix, Receiver, AjaxObject) {
-  SenderReceiver.call(this, transUrl, urlSuffix, createAjaxSender(AjaxObject), Receiver, AjaxObject);
+function AjaxBasedTransport(transUrl, urlSuffix, Receiver, AjaxObject, opts) {
+  SenderReceiver.call(this, transUrl, urlSuffix, createAjaxSender(AjaxObject, opts), Receiver, AjaxObject, opts);
 }
 
 inherits(AjaxBasedTransport, SenderReceiver);
@@ -1987,7 +2009,7 @@ module.exports = AjaxBasedTransport;
 
 }).call(this,{ env: {} })
 
-},{"../../utils/url":52,"./sender-receiver":28,"debug":55,"inherits":57}],25:[function(require,module,exports){
+},{"../../utils/url":53,"./sender-receiver":29,"debug":56,"inherits":58}],26:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -2079,7 +2101,7 @@ module.exports = BufferedSender;
 
 }).call(this,{ env: {} })
 
-},{"debug":55,"events":3,"inherits":57}],26:[function(require,module,exports){
+},{"debug":56,"events":3,"inherits":58}],27:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2117,7 +2139,7 @@ module.exports = function(transport) {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"../../utils/object":49,"../iframe":22,"inherits":57}],27:[function(require,module,exports){
+},{"../../utils/object":50,"../iframe":23,"inherits":58}],28:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -2130,12 +2152,13 @@ if (process.env.NODE_ENV !== 'production') {
   debug = require('debug')('sockjs-client:polling');
 }
 
-function Polling(Receiver, receiveUrl, AjaxObject) {
+function Polling(Receiver, receiveUrl, AjaxObject, opts) {
   debug(receiveUrl);
   EventEmitter.call(this);
   this.Receiver = Receiver;
   this.receiveUrl = receiveUrl;
   this.AjaxObject = AjaxObject;
+  this.opts = opts;
   this._scheduleReceiver();
 }
 
@@ -2144,7 +2167,7 @@ inherits(Polling, EventEmitter);
 Polling.prototype._scheduleReceiver = function() {
   debug('_scheduleReceiver');
   var self = this;
-  var poll = this.poll = new this.Receiver(this.receiveUrl, this.AjaxObject);
+  var poll = this.poll = new this.Receiver(this.receiveUrl, this.AjaxObject, this.opts);
 
   poll.on('message', function(msg) {
     debug('message', msg);
@@ -2179,7 +2202,7 @@ module.exports = Polling;
 
 }).call(this,{ env: {} })
 
-},{"debug":55,"events":3,"inherits":57}],28:[function(require,module,exports){
+},{"debug":56,"events":3,"inherits":58}],29:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -2194,13 +2217,13 @@ if (process.env.NODE_ENV !== 'production') {
   debug = require('debug')('sockjs-client:sender-receiver');
 }
 
-function SenderReceiver(transUrl, urlSuffix, senderFunc, Receiver, AjaxObject) {
+function SenderReceiver(transUrl, urlSuffix, senderFunc, Receiver, AjaxObject, opts) {
   var pollUrl = urlUtils.addPath(transUrl, urlSuffix);
   debug(pollUrl);
   var self = this;
   BufferedSender.call(this, transUrl, senderFunc);
 
-  this.poll = new Polling(Receiver, pollUrl, AjaxObject);
+  this.poll = new Polling(Receiver, pollUrl, AjaxObject, opts);
   this.poll.on('message', function(msg) {
     debug('poll message', msg);
     self.emit('message', msg);
@@ -2229,7 +2252,7 @@ module.exports = SenderReceiver;
 
 }).call(this,{ env: {} })
 
-},{"../../utils/url":52,"./buffered-sender":25,"./polling":27,"debug":55,"inherits":57}],29:[function(require,module,exports){
+},{"../../utils/url":53,"./buffered-sender":26,"./polling":28,"debug":56,"inherits":58}],30:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -2297,7 +2320,7 @@ module.exports = EventSourceReceiver;
 
 }).call(this,{ env: {} })
 
-},{"debug":55,"events":3,"eventsource":18,"inherits":57}],30:[function(require,module,exports){
+},{"debug":56,"events":3,"eventsource":19,"inherits":58}],31:[function(require,module,exports){
 (function (process,global){
 'use strict';
 
@@ -2389,7 +2412,7 @@ module.exports = HtmlfileReceiver;
 
 }).call(this,{ env: {} },typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"../../utils/iframe":47,"../../utils/random":50,"../../utils/url":52,"debug":55,"events":3,"inherits":57}],31:[function(require,module,exports){
+},{"../../utils/iframe":48,"../../utils/random":51,"../../utils/url":53,"debug":56,"events":3,"inherits":58}],32:[function(require,module,exports){
 (function (process,global){
 'use strict';
 
@@ -2577,7 +2600,7 @@ module.exports = JsonpReceiver;
 
 }).call(this,{ env: {} },typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"../../utils/browser":44,"../../utils/iframe":47,"../../utils/random":50,"../../utils/url":52,"debug":55,"events":3,"inherits":57}],32:[function(require,module,exports){
+},{"../../utils/browser":45,"../../utils/iframe":48,"../../utils/random":51,"../../utils/url":53,"debug":56,"events":3,"inherits":58}],33:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -2590,14 +2613,15 @@ if (process.env.NODE_ENV !== 'production') {
   debug = require('debug')('sockjs-client:receiver:xhr');
 }
 
-function XhrReceiver(url, AjaxObject) {
+function XhrReceiver(url, AjaxObject, opts) {
   debug(url);
   EventEmitter.call(this);
   var self = this;
 
   this.bufferPosition = 0;
 
-  this.xo = new AjaxObject('POST', url, null);
+  this.opts = opts;
+  this.xo = new AjaxObject('POST', url, null, opts);
   this.xo.on('chunk', this._chunkHandler.bind(this));
   this.xo.once('finish', function(status, text) {
     debug('finish', status, text);
@@ -2652,7 +2676,7 @@ module.exports = XhrReceiver;
 
 }).call(this,{ env: {} })
 
-},{"debug":55,"events":3,"inherits":57}],33:[function(require,module,exports){
+},{"debug":56,"events":3,"inherits":58}],34:[function(require,module,exports){
 (function (process,global){
 'use strict';
 
@@ -2756,7 +2780,7 @@ module.exports = function(url, payload, callback) {
 
 }).call(this,{ env: {} },typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"../../utils/random":50,"../../utils/url":52,"debug":55}],34:[function(require,module,exports){
+},{"../../utils/random":51,"../../utils/url":53,"debug":56}],35:[function(require,module,exports){
 (function (process,global){
 'use strict';
 
@@ -2864,7 +2888,7 @@ module.exports = XDRObject;
 
 }).call(this,{ env: {} },typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"../../utils/browser":44,"../../utils/event":46,"../../utils/url":52,"debug":55,"events":3,"inherits":57}],35:[function(require,module,exports){
+},{"../../utils/browser":45,"../../utils/event":47,"../../utils/url":53,"debug":56,"events":3,"inherits":58}],36:[function(require,module,exports){
 'use strict';
 
 var inherits = require('inherits')
@@ -2881,7 +2905,7 @@ XHRCorsObject.enabled = XhrDriver.enabled && XhrDriver.supportsCORS;
 
 module.exports = XHRCorsObject;
 
-},{"../driver/xhr":17,"inherits":57}],36:[function(require,module,exports){
+},{"../driver/xhr":18,"inherits":58}],37:[function(require,module,exports){
 'use strict';
 
 var EventEmitter = require('events').EventEmitter
@@ -2907,17 +2931,17 @@ XHRFake.timeout = 2000;
 
 module.exports = XHRFake;
 
-},{"events":3,"inherits":57}],37:[function(require,module,exports){
+},{"events":3,"inherits":58}],38:[function(require,module,exports){
 'use strict';
 
 var inherits = require('inherits')
   , XhrDriver = require('../driver/xhr')
   ;
 
-function XHRLocalObject(method, url, payload /*, opts */) {
-  XhrDriver.call(this, method, url, payload, {
-    noCredentials: true
-  });
+function XHRLocalObject(method, url, payload, opts) {
+  opts = opts || {};
+  opts.noCredentials = true;
+  XhrDriver.call(this, method, url, payload, opts);
 }
 
 inherits(XHRLocalObject, XhrDriver);
@@ -2926,7 +2950,7 @@ XHRLocalObject.enabled = XhrDriver.enabled;
 
 module.exports = XHRLocalObject;
 
-},{"../driver/xhr":17,"inherits":57}],38:[function(require,module,exports){
+},{"../driver/xhr":18,"inherits":58}],39:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -3030,7 +3054,7 @@ module.exports = WebSocketTransport;
 
 }).call(this,{ env: {} })
 
-},{"../utils/event":46,"../utils/url":52,"./driver/websocket":19,"debug":55,"events":3,"inherits":57}],39:[function(require,module,exports){
+},{"../utils/event":47,"../utils/url":53,"./driver/websocket":20,"debug":56,"events":3,"inherits":58}],40:[function(require,module,exports){
 'use strict';
 
 var inherits = require('inherits')
@@ -3040,11 +3064,11 @@ var inherits = require('inherits')
   , XDRObject = require('./sender/xdr')
   ;
 
-function XdrPollingTransport(transUrl) {
+function XdrPollingTransport(transUrl, ignore, opts) {
   if (!XDRObject.enabled) {
     throw new Error('Transport created when disabled');
   }
-  AjaxBasedTransport.call(this, transUrl, '/xhr', XhrReceiver, XDRObject);
+  AjaxBasedTransport.call(this, transUrl, '/xhr', XhrReceiver, XDRObject, opts);
 }
 
 inherits(XdrPollingTransport, AjaxBasedTransport);
@@ -3055,7 +3079,7 @@ XdrPollingTransport.roundTrips = 2; // preflight, ajax
 
 module.exports = XdrPollingTransport;
 
-},{"./lib/ajax-based":24,"./receiver/xhr":32,"./sender/xdr":34,"./xdr-streaming":40,"inherits":57}],40:[function(require,module,exports){
+},{"./lib/ajax-based":25,"./receiver/xhr":33,"./sender/xdr":35,"./xdr-streaming":41,"inherits":58}],41:[function(require,module,exports){
 'use strict';
 
 var inherits = require('inherits')
@@ -3068,11 +3092,11 @@ var inherits = require('inherits')
 //   http://stackoverflow.com/questions/1641507/detect-browser-support-for-cross-domain-xmlhttprequests
 //   http://hacks.mozilla.org/2009/07/cross-site-xmlhttprequest-with-cors/
 
-function XdrStreamingTransport(transUrl) {
+function XdrStreamingTransport(transUrl, ignore, opts) {
   if (!XDRObject.enabled) {
     throw new Error('Transport created when disabled');
   }
-  AjaxBasedTransport.call(this, transUrl, '/xhr_streaming', XhrReceiver, XDRObject);
+  AjaxBasedTransport.call(this, transUrl, '/xhr_streaming', XhrReceiver, XDRObject, opts);
 }
 
 inherits(XdrStreamingTransport, AjaxBasedTransport);
@@ -3089,7 +3113,7 @@ XdrStreamingTransport.roundTrips = 2; // preflight, ajax
 
 module.exports = XdrStreamingTransport;
 
-},{"./lib/ajax-based":24,"./receiver/xhr":32,"./sender/xdr":34,"inherits":57}],41:[function(require,module,exports){
+},{"./lib/ajax-based":25,"./receiver/xhr":33,"./sender/xdr":35,"inherits":58}],42:[function(require,module,exports){
 'use strict';
 
 var inherits = require('inherits')
@@ -3099,11 +3123,11 @@ var inherits = require('inherits')
   , XHRLocalObject = require('./sender/xhr-local')
   ;
 
-function XhrPollingTransport(transUrl) {
+function XhrPollingTransport(transUrl, ignore, opts) {
   if (!XHRLocalObject.enabled && !XHRCorsObject.enabled) {
     throw new Error('Transport created when disabled');
   }
-  AjaxBasedTransport.call(this, transUrl, '/xhr', XhrReceiver, XHRCorsObject);
+  AjaxBasedTransport.call(this, transUrl, '/xhr', XhrReceiver, XHRCorsObject, opts);
 }
 
 inherits(XhrPollingTransport, AjaxBasedTransport);
@@ -3124,7 +3148,7 @@ XhrPollingTransport.roundTrips = 2; // preflight, ajax
 
 module.exports = XhrPollingTransport;
 
-},{"./lib/ajax-based":24,"./receiver/xhr":32,"./sender/xhr-cors":35,"./sender/xhr-local":37,"inherits":57}],42:[function(require,module,exports){
+},{"./lib/ajax-based":25,"./receiver/xhr":33,"./sender/xhr-cors":36,"./sender/xhr-local":38,"inherits":58}],43:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3136,11 +3160,11 @@ var inherits = require('inherits')
   , browser = require('../utils/browser')
   ;
 
-function XhrStreamingTransport(transUrl) {
+function XhrStreamingTransport(transUrl, ignore, opts) {
   if (!XHRLocalObject.enabled && !XHRCorsObject.enabled) {
     throw new Error('Transport created when disabled');
   }
-  AjaxBasedTransport.call(this, transUrl, '/xhr_streaming', XhrReceiver, XHRCorsObject);
+  AjaxBasedTransport.call(this, transUrl, '/xhr_streaming', XhrReceiver, XHRCorsObject, opts);
 }
 
 inherits(XhrStreamingTransport, AjaxBasedTransport);
@@ -3170,7 +3194,7 @@ module.exports = XhrStreamingTransport;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"../utils/browser":44,"./lib/ajax-based":24,"./receiver/xhr":32,"./sender/xhr-cors":35,"./sender/xhr-local":37,"inherits":57}],43:[function(require,module,exports){
+},{"../utils/browser":45,"./lib/ajax-based":25,"./receiver/xhr":33,"./sender/xhr-cors":36,"./sender/xhr-local":38,"inherits":58}],44:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3192,7 +3216,7 @@ if (global.crypto && global.crypto.getRandomValues) {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}],44:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3224,7 +3248,7 @@ module.exports = {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}],45:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 'use strict';
 
 var JSON3 = require('json3');
@@ -3276,7 +3300,7 @@ module.exports = {
   }
 };
 
-},{"json3":58}],46:[function(require,module,exports){
+},{"json3":59}],47:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3354,7 +3378,7 @@ if (!isChromePackagedApp) {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./random":50}],47:[function(require,module,exports){
+},{"./random":51}],48:[function(require,module,exports){
 (function (process,global){
 'use strict';
 
@@ -3545,7 +3569,7 @@ if (global.document) {
 
 }).call(this,{ env: {} },typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"./browser":44,"./event":46,"debug":55,"json3":58}],48:[function(require,module,exports){
+},{"./browser":45,"./event":47,"debug":56,"json3":59}],49:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3568,7 +3592,7 @@ module.exports = logObject;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}],49:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -3594,7 +3618,7 @@ module.exports = {
   }
 };
 
-},{}],50:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 'use strict';
 
 var crypto = require('crypto');
@@ -3624,7 +3648,7 @@ module.exports = {
   }
 };
 
-},{"crypto":43}],51:[function(require,module,exports){
+},{"crypto":44}],52:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -3679,7 +3703,7 @@ module.exports = function(availableTransports) {
 
 }).call(this,{ env: {} })
 
-},{"debug":55}],52:[function(require,module,exports){
+},{"debug":56}],53:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -3735,10 +3759,10 @@ module.exports = {
 
 }).call(this,{ env: {} })
 
-},{"debug":55,"url-parse":61}],53:[function(require,module,exports){
-module.exports = '1.5.0';
+},{"debug":56,"url-parse":62}],54:[function(require,module,exports){
+module.exports = '0.0.2';
 
-},{}],54:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -3902,7 +3926,7 @@ function plural(ms, msAbs, n, name) {
   return Math.round(ms / n) + ' ' + name + (isPlural ? 's' : '');
 }
 
-},{}],55:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 (function (process){
 "use strict";
 
@@ -4087,7 +4111,7 @@ formatters.j = function (v) {
 
 }).call(this,{ env: {} })
 
-},{"./common":56}],56:[function(require,module,exports){
+},{"./common":57}],57:[function(require,module,exports){
 "use strict";
 
 /**
@@ -4338,7 +4362,7 @@ function setup(env) {
 module.exports = setup;
 
 
-},{"ms":54}],57:[function(require,module,exports){
+},{"ms":55}],58:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -4367,7 +4391,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],58:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 (function (global){
 /*! JSON v3.3.2 | https://bestiejs.github.io/json3 | Copyright 2012-2015, Kit Cambridge, Benjamin Tan | http://kit.mit-license.org */
 ;(function () {
@@ -5310,7 +5334,7 @@ if (typeof Object.create === 'function') {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{}],59:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 'use strict';
 
 var has = Object.prototype.hasOwnProperty
@@ -5430,7 +5454,7 @@ function querystringify(obj, prefix) {
 exports.stringify = querystringify;
 exports.parse = querystring;
 
-},{}],60:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 'use strict';
 
 /**
@@ -5470,7 +5494,7 @@ module.exports = function required(port, protocol) {
   return port !== 0;
 };
 
-},{}],61:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -5925,7 +5949,7 @@ module.exports = Url;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
-},{"querystringify":59,"requires-port":60}]},{},[1])(1)
+},{"querystringify":60,"requires-port":61}]},{},[1])(1)
 });
 
 

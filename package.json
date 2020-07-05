@@ -1,7 +1,7 @@
 {
-  "name": "testable-sockjs-client",
-  "description": "SockJS-client is a browser JavaScript library that provides a WebSocket-like object.",
-  "version": "1.5.0",
+  "name": "sockjs-client-testable",
+  "description": "Testable extension of SockJS-client, a browser JavaScript library that provides a WebSocket-like object.",
+  "version": "0.0.2",
   "author": "Bryce Kahle",
   "jsdelivr": "dist/sockjs.min.js",
   "browser": {
